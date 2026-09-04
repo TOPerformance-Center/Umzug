@@ -1,0 +1,421 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umzugskartons</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{--paper:#F4F2EC;--card:#fff;--ink:#1E2124;--muted:#6B7076;--line:#D8D3C8;--signal:#C8102E;--r:3px}
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-size:15px;line-height:1.45;
+    font-family:'Aptos','Aptos Display','Segoe UI Variable Text','Helvetica Neue',Arial,sans-serif}
+  h1,h2{margin:0;font-weight:650}
+  button{font:inherit;cursor:pointer}
+  input,select,textarea{font:inherit;color:inherit}
+  header{border-bottom:2px solid var(--ink)}
+  .head{max-width:1180px;margin:0 auto;padding:14px 20px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  .head h1{font-size:20px}
+  .tally{margin-left:auto;display:flex;gap:16px;color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+  .tally b{color:var(--ink)}
+  main{max-width:1180px;margin:0 auto;padding:20px;display:grid;grid-template-columns:360px 1fr;gap:26px;align-items:start}
+  @media(max-width:860px){main{grid-template-columns:1fr;padding:14px}}
+  .col{display:grid;gap:18px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+  .panel h2{font-size:16px;margin-bottom:12px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  input[type=text],input[type=number],textarea,select{width:100%;padding:8px 10px;background:#fff;
+    border:1px solid var(--line);border-radius:var(--r);outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--ink);box-shadow:0 0 0 2px rgba(30,33,36,.12)}
+  textarea{min-height:110px;resize:vertical}
+  .field{margin-bottom:13px}
+  .row2{display:grid;grid-template-columns:88px 1fr;gap:10px}
+  .check{display:flex;align-items:center;gap:8px;margin-bottom:13px;font-size:14px}
+  .check input{width:16px;height:16px;accent-color:var(--signal)}
+  .check label{margin:0;color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;padding:9px 15px;border-radius:var(--r);
+    border:1px solid var(--ink);background:var(--ink);color:#fff;font-weight:600}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.small{padding:6px 11px;font-size:13px;font-weight:500}
+  .btn-row{display:flex;gap:8px;flex-wrap:wrap}
+  .btn-row .btn{flex:1 1 auto}
+  #printBtn{flex-basis:100%}
+  .hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+  .hint.bad{color:var(--signal)}
+  .opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .toolbar input{flex:1;min-width:170px}
+  .toolbar select{width:auto;min-width:145px}
+  .boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  .box{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--rc,#888);
+    border-radius:var(--r);padding:12px 14px}
+  .box.done{opacity:.5}
+  .bh{display:flex;align-items:baseline;gap:10px}
+  .nr{font-size:26px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+  .room{font-size:14px;font-weight:600}
+  .frag{margin-left:auto;color:var(--signal);border:1px solid var(--signal);border-radius:2px;
+    padding:1px 5px;font-size:12px;font-weight:600}
+  .items{margin:8px 0 0;padding:0;list-style:none;font-size:13.5px;color:#3b3f44}
+  .note{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:6px}
+  .acts{margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+  .acts button{background:none;border:none;color:var(--muted);font-size:12.5px;margin-right:12px;padding:0}
+  .acts button:hover{color:var(--ink);text-decoration:underline}
+  .acts .del:hover{color:var(--signal)}
+  .empty{border:1px dashed var(--line);border-radius:var(--r);padding:32px;text-align:center;color:var(--muted)}
+  #modal{position:fixed;inset:0;background:rgba(20,22,24,.55);z-index:40;display:flex;align-items:center;
+    justify-content:center;padding:16px}
+  .sheetbox{background:var(--card);border-radius:var(--r);padding:20px;width:min(620px,100%);max-height:86vh;overflow:auto}
+  .sheetbox p{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+  .sheetbox textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+
+  /* ---------- Etiketten ---------- */
+  #printArea{display:none}
+  .sheet{display:grid;gap:2mm;align-content:start}
+  .label{border:1.2pt solid #000;background:#fff;color:#000;padding:6mm;display:flex;
+    align-items:center;gap:5mm;break-inside:avoid;overflow:hidden}
+  .l-text{flex:1;min-width:0}
+  .l-nr{font-weight:700;line-height:.85;font-variant-numeric:tabular-nums}
+  .l-room{font-weight:650;line-height:1.1;word-break:break-word;margin-top:3mm}
+  .l-frag{display:inline-block;border:1.2pt solid #000;padding:1mm 2.5mm;font-weight:700;margin-top:4mm}
+  .l-note{margin-top:3mm}
+  .l-qr{flex:none}
+  .l-qr canvas,.l-qr img{display:block;width:100%;height:100%}
+  .sheet.per2{grid-template-columns:194mm}
+  .sheet.per2 .label{height:138mm}
+  .sheet.per2 .l-nr{font-size:46mm}.sheet.per2 .l-room{font-size:11mm}
+  .sheet.per2 .l-qr{width:62mm;height:62mm}
+  .sheet.per2 .l-frag{font-size:5mm}.sheet.per2 .l-note{font-size:4.5mm}
+  .sheet.per4{grid-template-columns:repeat(2,96mm)}
+  .sheet.per4 .label{height:138mm;flex-direction:column;justify-content:center;text-align:center}
+  .sheet.per4 .l-nr{font-size:38mm}.sheet.per4 .l-room{font-size:8mm}
+  .sheet.per4 .l-qr{width:52mm;height:52mm}
+  .sheet.per4 .l-frag{font-size:4.5mm}.sheet.per4 .l-note{font-size:4mm}
+  .sheet.per8{grid-template-columns:repeat(2,96mm)}
+  .sheet.per8 .label{height:68mm;padding:4mm}
+  .sheet.per8 .l-nr{font-size:22mm}.sheet.per8 .l-room{font-size:5.5mm;margin-top:2mm}
+  .sheet.per8 .l-qr{width:34mm;height:34mm}
+  .sheet.per8 .l-frag{font-size:3.4mm;margin-top:2mm}.sheet.per8 .l-note{font-size:3.2mm}
+  @page{size:A4 portrait;margin:8mm}
+  @media print{
+    body{background:#fff}
+    header,main,#modal{display:none!important}
+    #printArea{display:block}
+  }
+</style>
+
+<header><div class="head">
+  <h1>Umzugskartons</h1>
+  <div class="tally"><span><b id="tCount">0</b> Kartons</span><span><b id="tRooms">0</b> Räume</span></div>
+</div></header>
+
+<main>
+ <div class="col">
+  <form class="panel" id="form" autocomplete="off">
+    <h2 id="formTitle">Neuer Karton</h2>
+    <div class="field row2">
+      <div><label for="fNr">Nummer</label><input type="number" id="fNr" min="1" required></div>
+      <div><label for="fRoom">Raum</label>
+        <input type="text" id="fRoom" list="roomList" placeholder="z. B. Küche" required>
+        <datalist id="roomList"></datalist></div>
+    </div>
+    <div class="field">
+      <label for="fItems">Inhalt – erscheint nur im QR-Code, pro Zeile ein Eintrag</label>
+      <textarea id="fItems" placeholder="Teller&#10;Gläser&#10;Besteckkasten"></textarea>
+    </div>
+    <div class="check"><input type="checkbox" id="fFrag"><label for="fFrag">Zerbrechlich</label></div>
+    <div class="field"><label for="fNote">Notiz für das Etikett</label>
+      <input type="text" id="fNote" placeholder="z. B. sofort auspacken"></div>
+    <div class="btn-row">
+      <button type="submit" class="btn" id="saveBtn">Karton speichern</button>
+      <button type="button" class="btn ghost" id="cancelBtn" hidden>Abbrechen</button>
+    </div>
+    <p class="hint" id="storageHint"></p>
+  </form>
+
+  <section class="panel">
+    <h2>Sichern und drucken</h2>
+    <div class="opts">
+      <div><label for="perPage">Etiketten pro A4-Seite</label>
+        <select id="perPage"><option value="2">2 – sehr groß</option>
+          <option value="4" selected>4 – Standard</option><option value="8">8 – klein</option></select></div>
+      <div><label for="copies">Exemplare je Karton</label>
+        <select id="copies"><option value="1" selected>1</option><option value="2">2</option>
+          <option value="3">3</option><option value="4">4</option></select></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn" id="printBtn">Etiketten drucken</button>
+      <button class="btn ghost small" id="expBtn">Sichern</button>
+      <button class="btn ghost small" id="impBtn">Datei laden</button>
+      <button class="btn ghost small" id="pasteBtn">Text einfügen</button>
+      <button class="btn ghost small" id="csvBtn">CSV-Liste</button>
+    </div>
+    <input type="file" id="impFile" accept=".html,.json,text/html,application/json" hidden>
+    <p class="hint" id="dirty" hidden>Änderungen noch nicht gesichert.</p>
+    <p class="hint bad" id="qrWarn" hidden>QR-Codes nicht verfügbar – keine Internetverbindung beim Öffnen.</p>
+  </section>
+ </div>
+
+ <section>
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Inhalt durchsuchen – wo ist der Wasserkocher?">
+    <select id="roomFilter"><option value="">Alle Räume</option></select>
+  </div>
+  <div id="list" class="boxes"></div>
+ </section>
+</main>
+
+<div id="modal" hidden><div class="sheetbox">
+  <h2 id="mTitle"></h2><p id="mText"></p>
+  <textarea id="mArea" spellcheck="false"></textarea>
+  <div class="btn-row" style="margin-top:12px">
+    <button type="button" class="btn" id="mCopy">Text kopieren</button>
+    <button type="button" class="btn" id="mApply" hidden>Übernehmen</button>
+    <button type="button" class="btn ghost" id="mClose">Schließen</button>
+  </div>
+</div></div>
+
+<script type="application/json" id="seed">{"t":0,"boxes":[]}</script>
+
+<div id="printArea"></div>
+
+<script>
+(function(){
+  const KEY='umzugskartons-v2';
+  const PRISTINE='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+  const PRESET=['Küche','Wohnzimmer','Schlafzimmer','Kinderzimmer','Bad','Flur','Arbeitszimmer','Keller','Dachboden','Garage','Abstellraum'];
+  const HUES=['#C8102E','#1F5FA9','#2F6B4F','#B4690E','#6B3FA0','#0E7C86','#8A6D1F','#A03A6B','#3C6E2F','#4A5568'];
+  let boxes=[], editId=null, stamp=0;
+
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const lines=t=>String(t||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const color=r=>{let h=0;for(const c of (r||''))h=(h*31+c.charCodeAt(0))>>>0;return HUES[h%HUES.length];};
+
+  /* Speicher: Claude-Speicher, sonst Browser-Speicher */
+  const store=(function(){
+    if(window.storage&&typeof window.storage.get==='function')
+      return {mode:'claude',
+        get:async k=>{try{const r=await window.storage.get(k);return r&&r.value?r.value:null;}catch(e){return null;}},
+        set:async(k,v)=>{await window.storage.set(k,v);}};
+    try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t');
+      return {mode:'local',get:async k=>localStorage.getItem(k),set:async(k,v)=>localStorage.setItem(k,v)};
+    }catch(e){}
+    return {mode:'none',get:async()=>null,set:async()=>{throw new Error('kein Speicher');}};
+  })();
+
+  function payload(){ return JSON.stringify({t:stamp,boxes:boxes}); }
+  function parseData(txt){
+    try{
+      const t=String(txt).trim();
+      let raw=t;
+      if(!/^[\[{]/.test(t)){
+        const m=t.match(/id="seed">([\s\S]*?)<\/script>/); if(!m) return null; raw=m[1].trim();
+      }
+      const d=JSON.parse(raw);
+      if(Array.isArray(d)) return {t:1,boxes:d};
+      if(d&&Array.isArray(d.boxes)) return {t:d.t||1,boxes:d.boxes};
+    }catch(e){}
+    return null;
+  }
+
+  async function load(){
+    const seed=parseData($('seed').textContent)||{t:0,boxes:[]};
+    let saved=null;
+    try{ saved=parseData(await store.get(KEY)); }catch(e){}
+    const win = saved && saved.t>=seed.t ? saved : seed;   // die neuere Fassung gewinnt
+    boxes=win.boxes; stamp=win.t;
+    render(); setDirty(false); await check();
+  }
+
+  async function check(){
+    if(store.mode==='none'){
+      $('storageHint').textContent='Dieser Browser speichert nichts. Nutze „Sichern“, bevor du schließt.';
+      $('storageHint').className='hint bad'; return;
+    }
+    try{
+      await store.set(KEY,payload());
+      const back=parseData(await store.get(KEY));
+      if(!back||back.boxes.length!==boxes.length) throw new Error('Prüfung fehlgeschlagen');
+      $('storageHint').textContent='Einträge bleiben in dieser Datei gespeichert.';
+      $('storageHint').className='hint';
+    }catch(e){
+      $('storageHint').textContent='Speichern klappt hier nicht – bitte nach jedem Karton „Sichern“ nutzen.';
+      $('storageHint').className='hint bad';
+    }
+  }
+  async function save(){ stamp=Date.now(); render(); setDirty(true); await check(); }
+  function setDirty(v){ $('dirty').hidden=!(v&&boxes.length); }
+
+  /* Formular */
+  const nextNr=()=>boxes.reduce((m,b)=>Math.max(m,b.nr),0)+1;
+  function resetForm(){
+    editId=null; $('form').reset(); $('fNr').value=nextNr();
+    $('formTitle').textContent='Neuer Karton'; $('saveBtn').textContent='Karton speichern';
+    $('cancelBtn').hidden=true;
+  }
+  $('form').addEventListener('submit',e=>{
+    e.preventDefault();
+    const data={nr:parseInt($('fNr').value,10)||nextNr(),room:$('fRoom').value.trim()||'Ohne Raum',
+      items:$('fItems').value,fragile:$('fFrag').checked,note:$('fNote').value.trim()};
+    if(editId) Object.assign(boxes.find(b=>b.id===editId),data);
+    else boxes.push(Object.assign({id:Date.now()+Math.random(),done:false},data));
+    const room=data.room; resetForm(); $('fRoom').value=room; save();
+  });
+  $('cancelBtn').addEventListener('click',resetForm);
+  window.editBox=id=>{const b=boxes.find(x=>x.id===id);if(!b)return;editId=id;
+    $('fNr').value=b.nr;$('fRoom').value=b.room;$('fItems').value=b.items;
+    $('fFrag').checked=b.fragile;$('fNote').value=b.note;
+    $('formTitle').textContent='Karton '+b.nr+' bearbeiten';$('saveBtn').textContent='Änderungen speichern';
+    $('cancelBtn').hidden=false;window.scrollTo({top:0,behavior:'smooth'});};
+  window.delBox=id=>{const b=boxes.find(x=>x.id===id);
+    if(confirm('Karton '+b.nr+' löschen?')){boxes=boxes.filter(x=>x.id!==id);if(editId===id)resetForm();save();}};
+  window.toggleDone=id=>{const b=boxes.find(x=>x.id===id);b.done=!b.done;save();};
+  window.copyBox=id=>{const b=boxes.find(x=>x.id===id);
+    boxes.push(Object.assign({},b,{id:Date.now()+Math.random(),nr:nextNr(),done:false}));save();};
+
+  /* Liste */
+  function visible(){
+    const q=$('search').value.trim().toLowerCase(), rf=$('roomFilter').value;
+    return boxes.slice().sort((a,b)=>a.nr-b.nr).filter(b=>
+      (!rf||b.room===rf) && (!q||(b.items+' '+b.room+' '+b.note+' '+b.nr).toLowerCase().includes(q)));
+  }
+  function render(){
+    const rooms=[...new Set(boxes.map(b=>b.room))].sort((a,b)=>a.localeCompare(b,'de'));
+    $('tCount').textContent=boxes.length; $('tRooms').textContent=rooms.length;
+    $('roomList').innerHTML=[...new Set([...rooms,...PRESET])].map(r=>'<option value="'+esc(r)+'">').join('');
+    const cur=$('roomFilter').value;
+    $('roomFilter').innerHTML='<option value="">Alle Räume</option>'+
+      rooms.map(r=>'<option'+(r===cur?' selected':'')+'>'+esc(r)+'</option>').join('');
+    const v=visible();
+    $('list').innerHTML=v.length?v.map(card).join(''):
+      (boxes.length?'<div class="empty">Kein Karton passt zu dieser Suche.</div>'
+        :'<div class="empty">Noch keine Kartons. Trage links Nummer, Raum und Inhalt ein.</div>');
+    if(!editId) $('fNr').value=nextNr();
+  }
+  function card(b){
+    const it=lines(b.items);
+    return '<article class="box'+(b.done?' done':'')+'" style="--rc:'+color(b.room)+'">'+
+      '<div class="bh"><span class="nr">'+b.nr+'</span><span class="room">'+esc(b.room)+'</span>'+
+      (b.fragile?'<span class="frag">Zerbrechlich</span>':'')+'</div>'+
+      (it.length?'<ul class="items">'+it.map(i=>'<li>'+esc(i)+'</li>').join('')+'</ul>':'')+
+      (b.note?'<p class="note">'+esc(b.note)+'</p>':'')+
+      '<div class="acts"><button onclick="editBox('+b.id+')">Bearbeiten</button>'+
+      '<button onclick="copyBox('+b.id+')">Duplizieren</button>'+
+      '<button onclick="toggleDone('+b.id+')">'+(b.done?'Wieder öffnen':'Ausgepackt')+'</button>'+
+      '<button class="del" onclick="delBox('+b.id+')">Löschen</button></div></article>';
+  }
+  $('search').addEventListener('input',render);
+  $('roomFilter').addEventListener('change',render);
+
+  /* Etiketten */
+  function qrText(b){
+    const it=lines(b.items);
+    let t='KARTON '+b.nr+'\nRaum: '+b.room;
+    if(it.length) t+='\nInhalt:\n- '+it.join('\n- ');
+    if(b.note) t+='\nNotiz: '+b.note;
+    if(b.fragile) t+='\nZERBRECHLICH';
+    return t.length>800?t.slice(0,797)+'...':t;
+  }
+  function labelEl(b){
+    const el=document.createElement('div'); el.className='label';
+    el.innerHTML='<div class="l-text"><div class="l-nr">'+b.nr+'</div>'+
+      '<div class="l-room">'+esc(b.room)+'</div>'+
+      (b.fragile?'<div class="l-frag">ZERBRECHLICH</div>':'')+
+      (b.note?'<div class="l-note">'+esc(b.note)+'</div>':'')+
+      '</div><div class="l-qr"></div>';
+    if(window.QRCode) new QRCode(el.querySelector('.l-qr'),
+      {text:qrText(b),width:400,height:400,correctLevel:QRCode.CorrectLevel.L});
+    return el;
+  }
+  $('printBtn').addEventListener('click',()=>{
+    const v=visible();
+    if(!v.length){ alert('Keine Kartons zum Drucken vorhanden.'); return; }
+    const per=$('perPage').value, n=parseInt($('copies').value,10);
+    $('printArea').innerHTML='<div class="sheet per'+per+'"></div>';
+    const sheet=$('printArea').firstChild;
+    v.forEach(b=>{ for(let i=0;i<n;i++) sheet.appendChild(labelEl(b)); });
+    setTimeout(()=>window.print(),350);
+  });
+  if(!window.QRCode) $('qrWarn').hidden=false;
+
+  /* Overlay */
+  const inFrame=(function(){try{return window.self!==window.top;}catch(e){return true;}})();
+  function openModal(title,text,value,apply){
+    $('mTitle').textContent=title; $('mText').textContent=text; $('mArea').value=value;
+    $('mArea').readOnly=!apply; $('mApply').hidden=!apply; $('mCopy').hidden=apply; $('modal').hidden=false;
+  }
+  $('mClose').addEventListener('click',()=>{$('modal').hidden=true;});
+  $('mCopy').addEventListener('click',async()=>{
+    const ta=$('mArea'); ta.readOnly=false; ta.focus(); ta.setSelectionRange(0,ta.value.length);
+    let ok=false;
+    try{ await navigator.clipboard.writeText(ta.value); ok=true; }
+    catch(e){ try{ ok=document.execCommand('copy'); }catch(e2){} }
+    ta.readOnly=true;
+    $('mCopy').textContent=ok?'Kopiert':'Bitte von Hand markieren';
+    if(ok){ setDirty(false); setTimeout(()=>{$('mCopy').textContent='Text kopieren';},2000); }
+  });
+  $('mApply').addEventListener('click',()=>{
+    const d=parseData($('mArea').value);
+    if(!d){ alert('Der Text enthält keine Kartonliste.'); return; }
+    if(boxes.length&&!confirm('Vorhandene '+boxes.length+' Kartons ersetzen?')) return;
+    boxes=d.boxes; $('modal').hidden=true; resetForm(); save();
+  });
+  $('pasteBtn').addEventListener('click',()=>openModal('Kartons einfügen','Füge den gesicherten Text ein.','',true));
+
+  /* Sichern */
+  function buildHtml(){
+    const json=payload().replace(/<\//g,'<\\/');
+    const re=/(<script type="application\/json" id="seed">)[\s\S]*?(<\/script>)/;
+    if(!re.test(PRISTINE)) return null;
+    const html=PRISTINE.replace(re,(m,a,b)=>a+json+b);
+    try{
+      const d=parseData(html.match(/id="seed">([\s\S]*?)<\/script>/)[1]);
+      if(!d||d.boxes.length!==boxes.length||!/id="printBtn"/.test(html)) return null;
+    }catch(e){ return null; }
+    return html;
+  }
+  function download(name,content,type){
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([content],{type:type}));
+    a.download=name; document.body.appendChild(a); a.click();
+    setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+  }
+  const p2=n=>String(n).padStart(2,'0');
+  const nameStamp=()=>{const d=new Date();
+    return p2(d.getDate())+'.'+p2(d.getMonth()+1)+'.'+d.getFullYear()+' '+p2(d.getHours())+'-'+p2(d.getMinutes());};
+  $('expBtn').addEventListener('click',async()=>{
+    if(!boxes.length){ alert('Es sind noch keine Kartons erfasst.'); return; }
+    const html=buildHtml();
+    const canShare=(function(){try{return !!(navigator.canShare&&
+      navigator.canShare({files:[new File(['x'],'x.html',{type:'text/html'})]}));}catch(e){return false;}})();
+    if(html&&canShare){
+      try{ await navigator.share({files:[new File([html],'Umzugskartons '+nameStamp()+'.html',{type:'text/html'})]});
+        setDirty(false); return; }catch(e){ if(e&&e.name==='AbortError') return; }
+    }
+    if(html&&!inFrame){ download('Umzugskartons '+nameStamp()+'.html',html,'text/html'); setDirty(false); return; }
+    openModal('Kartons sichern',
+      'Downloads sind hier blockiert. Kopiere den Text und lege ihn in einer Notiz oder Datei in deiner iCloud ab. Über „Text einfügen“ holst du ihn zurück.',
+      payload(),false);
+  });
+  $('impBtn').addEventListener('click',()=>$('impFile').click());
+  $('impFile').addEventListener('change',e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      const d=parseData(String(r.result));
+      if(!d){ alert('Diese Datei enthält keine Kartonliste.'); return; }
+      if(boxes.length&&!confirm('Vorhandene '+boxes.length+' Kartons ersetzen?')) return;
+      boxes=d.boxes; resetForm(); save();
+    };
+    r.readAsText(f); e.target.value='';
+  });
+  $('csvBtn').addEventListener('click',()=>{
+    const q=s=>'"'+String(s||'').replace(/"/g,'""')+'"';
+    const rows=[['Nummer','Raum','Inhalt','Zerbrechlich','Notiz','Ausgepackt'].map(q).join(';')];
+    boxes.slice().sort((a,b)=>a.nr-b.nr).forEach(b=>rows.push(
+      [b.nr,b.room,lines(b.items).join(', '),b.fragile?'ja':'nein',b.note,b.done?'ja':'nein'].map(q).join(';')));
+    download('Kartonliste '+nameStamp()+'.csv','\ufeff'+rows.join('\r\n'),'text/csv;charset=utf-8');
+  });
+
+  resetForm(); load();
+})();
+</script>
