@@ -339,7 +339,8 @@
       alle.slice(i,i+per).forEach(b=>seite.appendChild(labelEl(b)));
       area.appendChild(seite);
     }
-    setTimeout(()=>window.print(),350);
+    try{ window.print(); }
+    catch(e){ alert('Safari hat den Druckdialog blockiert. Drücke stattdessen Cmd+P – die Etiketten sind bereits vorbereitet.'); }
   });
   if(!window.QRCode) $('qrWarn').hidden=false;
 
